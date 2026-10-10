@@ -32,6 +32,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Parrot to record your Hausa practice replies."
+        }
       ]
     ],
     "experiments": {
