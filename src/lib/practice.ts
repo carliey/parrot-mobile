@@ -1,5 +1,20 @@
 import type { TopicId } from "@/data/lessons";
 export type Mode = "real";
+export type LessonProgress = {
+  completed_steps: number;
+  total_steps: number;
+  complete: boolean;
+  instruction: string;
+  hint: string;
+  hint_english: string;
+};
+export class PracticeError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
 export type Feedback = {
   insufficient_evidence: boolean;
   tasks_completed: string[];
@@ -13,12 +28,14 @@ export type Session = {
   access_token: string;
   provider_mode: Mode;
   initial_tutor_message: string;
+  lesson_progress: LessonProgress;
 };
 export type Turn = {
   turn_id: string;
   tutor_response: string;
   processing_ms: number;
   provider_mode: Mode;
+  lesson_progress: LessonProgress;
 };
 export interface TutorService {
   start(
@@ -62,8 +79,9 @@ async function request<T>(
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    throw new Error(
+    throw new PracticeError(
       error?.detail?.message ?? `Request failed (${response.status})`,
+      error?.detail?.code,
     );
   }
   return response.json();

@@ -53,7 +53,7 @@ export default function Learn() {
       >
         Learn
       </Text>
-      {topics.map((lesson) => (
+      {topics.filter((lesson) => lesson.mode === "guided").map((lesson) => (
         <TopicCard key={lesson.id} lesson={lesson} kind="lesson" />
       ))}
       <View

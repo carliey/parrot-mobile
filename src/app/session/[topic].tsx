@@ -24,7 +24,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isTopic, lessons } from "@/data/lessons";
-import { RealTutor, type Feedback, type Session } from "@/lib/practice";
+import {
+  RealTutor,
+  PracticeError,
+  type Feedback,
+  type Session,
+  type LessonProgress,
+} from "@/lib/practice";
 import { HoldRecorder, type RecordingPhase } from "@/lib/hold-recorder";
 
 const tutor = new RealTutor();
@@ -67,6 +73,9 @@ export default function SessionScreen() {
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [hint, setHint] = useState(false);
+  const [lessonProgress, setLessonProgress] = useState<LessonProgress | null>(
+    null,
+  );
   const [validation, setValidation] = useState(false);
   const [consent, setConsent] = useState(false);
   const [participantId, setParticipantId] = useState("");
@@ -135,8 +144,18 @@ export default function SessionScreen() {
         : [...old, { id, role: "learner", text: clean }],
     );
     setActivity("Your tutor is replying…");
-    const result = await tutor.turn(session, id, clean);
+    let result;
+    try {
+      result = await tutor.turn(session, id, clean);
+    } catch (e) {
+      if (e instanceof PracticeError && e.code === "lesson_step_expected") {
+        setLastTurn(null);
+        setHint(true);
+      }
+      throw e;
+    }
     if (!alive.current) return;
+    setLessonProgress(result.lesson_progress);
     setMessages((old) => [
       ...old.filter((m) => m.id !== `reply-${id}`),
       { id: `reply-${id}`, role: "tutor", text: result.tutor_response },
@@ -147,7 +166,7 @@ export default function SessionScreen() {
 
   useEffect(() => {
     submitAudio.current = async (uri) => {
-      if (!session || locked.current) return;
+      if (!session || locked.current || lessonProgress?.complete) return;
       locked.current = true;
       setBusy(true);
       setError("");
@@ -182,6 +201,7 @@ export default function SessionScreen() {
       const result = await tutor.start(lesson.id, consent, participantId);
       if (!alive.current) return;
       setSession(result);
+      setLessonProgress(result.lesson_progress);
       setMessages([
         { id: "opening", role: "tutor", text: result.initial_tutor_message },
       ]);
@@ -195,7 +215,14 @@ export default function SessionScreen() {
   }
 
   async function send(text = draft, id = turnId()) {
-    if (!session || locked.current || voice !== "idle" || !text.trim()) return;
+    if (
+      !session ||
+      locked.current ||
+      voice !== "idle" ||
+      lessonProgress?.complete ||
+      !text.trim()
+    )
+      return;
     Keyboard.dismiss();
     locked.current = true;
     setBusy(true);
@@ -444,6 +471,8 @@ export default function SessionScreen() {
                 setError("");
                 setLastTurn(null);
                 setDraft("");
+                setLessonProgress(null);
+                setHint(false);
               }}
               style={s.primary}
             >
@@ -470,23 +499,32 @@ export default function SessionScreen() {
                 <Text style={s.primaryText}>Start conversation ↗</Text>
               )}
             </Pressable>
+          ) : lessonProgress?.complete ? (
+            <>
+              <Text style={s.instructionTitle}>
+                {lesson.mode === "mixed"
+                  ? "All practice skills covered"
+                  : "All lesson steps complete"}
+              </Text>
+              <Pressable
+                onPress={() => void finish()}
+                disabled={blocked}
+                accessibilityRole="button"
+                style={[s.primary, blocked && s.disabled]}
+              >
+                <Text style={s.primaryText}>See practice notes →</Text>
+              </Pressable>
+            </>
           ) : (
             <>
+              <Text style={s.small} accessibilityLiveRegion="polite">
+                {lessonProgress?.instruction}
+              </Text>
               {hint && (
                 <View style={s.hint}>
                   <Text style={s.hintLabel}>TRY SAYING</Text>
-                  <Text style={s.hintPhrase}>
-                    {
-                      lesson.phrases[Math.min(turns, lesson.phrases.length - 1)]
-                        .hausa
-                    }
-                  </Text>
-                  <Text style={s.small}>
-                    {
-                      lesson.phrases[Math.min(turns, lesson.phrases.length - 1)]
-                        .english
-                    }
-                  </Text>
+                  <Text style={s.hintPhrase}>{lessonProgress?.hint}</Text>
+                  <Text style={s.small}>{lessonProgress?.hint_english}</Text>
                 </View>
               )}
               <View style={s.composerTop}>
@@ -500,7 +538,9 @@ export default function SessionScreen() {
                   </Text>
                 </Pressable>
                 <Text style={s.turns}>
-                  {turns} {turns === 1 ? "reply" : "replies"}
+                  {lessonProgress
+                    ? `${lessonProgress.completed_steps} / ${lessonProgress.total_steps} ${lesson.mode === "mixed" ? "skills" : "steps"}`
+                    : `${turns} replies`}
                 </Text>
               </View>
               <View style={s.inputRow}>
@@ -569,7 +609,7 @@ export default function SessionScreen() {
                   >
                     {voice === "recording"
                       ? `Recording · ${(recording.durationMillis / 1000).toFixed(1)}s / 28s`
-                      : "Speak in Hausa · up to 15 seconds"}
+                      : "Speak in Hausa · up to 10 seconds"}
                   </Text>
                 </View>
                 {voice === "recording" && <View style={s.recordDot} />}

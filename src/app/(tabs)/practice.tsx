@@ -34,7 +34,8 @@ export default function Practice() {
           marginBottom: 12,
         }}
       >
-        Try a short conversation. You can begin without finishing a lesson.
+        Practise one lesson, or put all three together in a shop conversation.
+        You can begin whenever you feel ready.
       </Text>
       {topics.map((lesson) => (
         <TopicCard key={lesson.id} lesson={lesson} kind="session" />
