@@ -89,6 +89,7 @@ export default function SessionScreen() {
   const scroll = useRef<ScrollView>(null);
   const turns = messages.filter((m) => m.role === "learner").length;
   const blocked = busy || voice !== "idle";
+  const guidedComplete = lesson?.mode !== "mixed" && lessonProgress?.complete;
 
   useEffect(() => {
     alive.current = true;
@@ -166,7 +167,7 @@ export default function SessionScreen() {
 
   useEffect(() => {
     submitAudio.current = async (uri) => {
-      if (!session || locked.current || lessonProgress?.complete) return;
+      if (!session || locked.current || guidedComplete) return;
       locked.current = true;
       setBusy(true);
       setError("");
@@ -219,7 +220,7 @@ export default function SessionScreen() {
       !session ||
       locked.current ||
       voice !== "idle" ||
-      lessonProgress?.complete ||
+      guidedComplete ||
       !text.trim()
     )
       return;
@@ -499,7 +500,7 @@ export default function SessionScreen() {
                 <Text style={s.primaryText}>Start conversation ↗</Text>
               )}
             </Pressable>
-          ) : lessonProgress?.complete ? (
+          ) : guidedComplete ? (
             <>
               <Text style={s.instructionTitle}>
                 {lesson.mode === "mixed"
@@ -520,7 +521,7 @@ export default function SessionScreen() {
               <Text style={s.small} accessibilityLiveRegion="polite">
                 {lessonProgress?.instruction}
               </Text>
-              {hint && (
+              {hint && lessonProgress?.hint && (
                 <View style={s.hint}>
                   <Text style={s.hintLabel}>TRY SAYING</Text>
                   <Text style={s.hintPhrase}>{lessonProgress?.hint}</Text>
@@ -530,7 +531,8 @@ export default function SessionScreen() {
               <View style={s.composerTop}>
                 <Pressable
                   onPress={() => setHint(!hint)}
-                  style={s.hintButton}
+                  disabled={!lessonProgress?.hint}
+                  style={[s.hintButton, !lessonProgress?.hint && s.disabled]}
                   accessibilityRole="button"
                 >
                   <Text style={s.hintButtonText}>
