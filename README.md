@@ -13,6 +13,8 @@ Expo Go should support the installed SDK 57 `expo-audio`, `expo-file-system` mod
 
 Practice connects to the N-ATLAS backend. You can type a reply or record one; recorded audio is uploaded to the backend's official Hausa-ASR runtime, and its transcript is sent to the N-ATLAS tutor. The recorded file is deleted after the request. Spoken tutor playback is not configured.
 
+The chat keeps its composer at the bottom of the screen. Hold the microphone to record and release to send. Short taps are discarded, recordings stop at 28 seconds, and leaving the app cancels recording. If you release while microphone permission or preparation is pending, recording will not start. Typed replies, hints, and failed-reply retries remain available.
+
 To use the backend, create `.env` from `.env.example` and set `EXPO_PUBLIC_API_URL=http://YOUR_MAC_LAN_IP:8000`, then restart Expo. Put the Mac and phone on the same Wi-Fi. `localhost` on a phone refers to the phone. Start the backend with `--host 0.0.0.0`. Use only a trusted local network until TLS and authentication are added.
 
 ## API contract

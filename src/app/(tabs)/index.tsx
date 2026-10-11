@@ -1,4 +1,69 @@
-import { ScrollView, Text, View } from 'react-native';
-import { TopicCard } from '@/components/topic-card';
-import { topics } from '@/data/lessons';
-export default function Learn(){return <ScrollView contentInsetAdjustmentBehavior="automatic" style={{backgroundColor:'#F6F3EA'}} contentContainerStyle={{padding:24,paddingTop:64,paddingBottom:120,gap:16}}><Text style={{fontSize:13,fontWeight:'700',letterSpacing:2,color:'#60796E'}}>PARROT • HAUSA</Text><Text style={{fontSize:42,fontWeight:'800',color:'#173B32',lineHeight:46}}>A little Hausa, every day.</Text><Text style={{fontSize:16,color:'#577064',lineHeight:24,marginBottom:12}}>Start with useful phrases. Practise when you feel ready.</Text><Text style={{fontSize:22,fontWeight:'700',color:'#173B32',marginTop:8}}>Learn</Text>{topics.map(lesson=><TopicCard key={lesson.id} lesson={lesson} kind="lesson"/>)}<View style={{backgroundColor:'#E6EEE5',padding:18,borderRadius:16}}><Text style={{color:'#3C5F51',lineHeight:21}}>Hausa phrases and pronunciation guides are drafts awaiting language review. Audio examples are not available yet.</Text></View></ScrollView>}
+import { ScrollView, Text, View } from "react-native";
+import { TopicCard } from "@/components/topic-card";
+import { topics } from "@/data/lessons";
+export default function Learn() {
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ backgroundColor: "#F6F3EA" }}
+      contentContainerStyle={{
+        padding: 24,
+        paddingTop: 64,
+        paddingBottom: 120,
+        gap: 16,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: "700",
+          letterSpacing: 2,
+          color: "#60796E",
+        }}
+      >
+        PARROT • HAUSA
+      </Text>
+      <Text
+        style={{
+          fontSize: 42,
+          fontWeight: "800",
+          color: "#173B32",
+          lineHeight: 46,
+        }}
+      >
+        A little Hausa, every day.
+      </Text>
+      <Text
+        style={{
+          fontSize: 16,
+          color: "#577064",
+          lineHeight: 24,
+          marginBottom: 12,
+        }}
+      >
+        Start with useful phrases. Practise when you feel ready.
+      </Text>
+      <Text
+        style={{
+          fontSize: 22,
+          fontWeight: "700",
+          color: "#173B32",
+          marginTop: 8,
+        }}
+      >
+        Learn
+      </Text>
+      {topics.map((lesson) => (
+        <TopicCard key={lesson.id} lesson={lesson} kind="lesson" />
+      ))}
+      <View
+        style={{ backgroundColor: "#E6EEE5", padding: 18, borderRadius: 16 }}
+      >
+        <Text style={{ color: "#3C5F51", lineHeight: 21 }}>
+          Hausa phrases and pronunciation guides are drafts awaiting language
+          review. Audio examples are not available yet.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
