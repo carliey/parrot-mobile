@@ -21,7 +21,7 @@ export default function Learn() {
           color: "#60796E",
         }}
       >
-        PARROT • HAUSA
+        PARROT-AI • HAUSA
       </Text>
       <Text
         style={{
@@ -53,17 +53,11 @@ export default function Learn() {
       >
         Learn
       </Text>
-      {topics.filter((lesson) => lesson.mode === "guided").map((lesson) => (
-        <TopicCard key={lesson.id} lesson={lesson} kind="lesson" />
-      ))}
-      <View
-        style={{ backgroundColor: "#E6EEE5", padding: 18, borderRadius: 16 }}
-      >
-        <Text style={{ color: "#3C5F51", lineHeight: 21 }}>
-          Hausa phrases and pronunciation guides are drafts awaiting language
-          review. Audio examples are not available yet.
-        </Text>
-      </View>
+      {topics
+        .filter((lesson) => lesson.mode === "guided")
+        .map((lesson) => (
+          <TopicCard key={lesson.id} lesson={lesson} kind="lesson" />
+        ))}
     </ScrollView>
   );
 }
