@@ -46,7 +46,8 @@
         {
           "microphonePermission": "Allow Parrot to record your Hausa practice replies."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

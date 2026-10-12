@@ -2,12 +2,14 @@ import { useCallback, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { prepareRecording } from './recorded-audio';
 
 export function useLessonAudio() {
   const player = useAudioPlayer(null, { updateInterval: 100 });
   const status = useAudioPlayerStatus(player);
   const [active, setActive] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [preparing, setPreparing] = useState(false);
   const request = useRef(0);
   const source = useRef<number | null>(null);
 
@@ -16,6 +18,7 @@ export function useLessonAudio() {
     player.pause();
     setActive(null);
     setError('');
+    setPreparing(false);
   }, [player]);
 
   useFocusEffect(useCallback(() => {
@@ -38,14 +41,17 @@ export function useLessonAudio() {
     }
     player.pause();
     setActive(clip);
+    setPreparing(true);
     try {
+      const uri = await prepareRecording(clip);
+      if (id !== request.current) return;
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false,
         shouldPlayInBackground: false, interruptionMode: 'doNotMix' });
       if (id !== request.current) return;
       if (source.current === clip) {
         await player.seekTo(0);
       } else {
-        player.replace(clip);
+        player.replace({ uri });
         source.current = clip;
       }
       if (id === request.current) player.play();
@@ -54,10 +60,12 @@ export function useLessonAudio() {
         setActive(null);
         setError('Could not play this recording. Tap to try again.');
       }
+    } finally {
+      if (id === request.current) setPreparing(false);
     }
   }
 
   return { play, stop, active, playing: status.playing,
-    loading: active !== null && !status.error && (!status.isLoaded || status.isBuffering),
+    loading: active !== null && !status.error && (preparing || !status.isLoaded || status.isBuffering),
     error: error || (status.error ? 'Could not play this recording. Tap to try again.' : '') };
 }

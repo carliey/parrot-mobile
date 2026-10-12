@@ -19,6 +19,7 @@ import {
   type PhraseOption,
 } from "@/lib/lesson-cards";
 import { useLessonAudio } from "@/lib/use-lesson-audio";
+import { prepareRecording } from "@/lib/recorded-audio";
 import { isLessonComplete, setLessonComplete } from "@/lib/progress";
 
 const ink = "#173B32";
@@ -43,6 +44,14 @@ function PhrasePanel({
   const [selected, setSelected] = useState(0);
   const option = options[selected];
   const clip = audioFor(option.text);
+  useEffect(() => {
+    if (clip !== undefined) {
+      // Prepare the visible phrase and response while the learner reads the card.
+      void prepareRecording(clip).catch(() => {
+        // A tap retries preparation and displays any failure through the player.
+      });
+    }
+  }, [clip]);
   const active = clip !== undefined && playback.active === clip;
   const playing = active && playback.playing;
   return (
