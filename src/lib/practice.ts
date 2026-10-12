@@ -87,6 +87,12 @@ async function request<T>(
   return response.json();
 }
 export class RealTutor implements TutorService {
+  speech(session: Session, messageId: string) {
+    return request<{ audio_base64: string; mime_type: string }>(
+      `/sessions/${session.session_id}/speech/${encodeURIComponent(messageId)}`,
+      "POST", undefined, session.access_token,
+    );
+  }
   start(topic: TopicId, consent = false, participantId = "") {
     return request<Session>("/sessions", "POST", {
       topic,
@@ -114,6 +120,11 @@ export class RealTutor implements TutorService {
       import("expo-file-system"),
     ]);
     const file = new File(uri);
+    if (__DEV__) console.info('[Voice upload] Preparing recording', {
+      turnId, bytes: file.size, exists: file.exists,
+    });
+    if (!file.exists || file.size === 0)
+      throw new Error('The recording file is empty. Hold the microphone and try again.');
     if (file.size > 5_000_000)
       throw new Error("Recording exceeds 5 MB. Try a shorter reply.");
     const response = await expoFetch(
@@ -124,13 +135,23 @@ export class RealTutor implements TutorService {
         body: file,
       },
     );
+    if (__DEV__) console.info('[Voice upload] Backend responded', {
+      turnId, status: response.status,
+    });
     if (!response.ok) {
       const error = await response.json().catch(() => null);
+      if (__DEV__) console.info('[Voice upload] Transcription rejected', {
+        turnId, code: error?.detail?.code,
+      });
       throw new Error(
         error?.detail?.message ?? `Transcription failed (${response.status})`,
       );
     }
-    return response.json();
+    const result: TranscriptionResult = await response.json();
+    if (__DEV__) console.info('[Voice upload] Transcription received', {
+      turnId, characters: result.transcript.length, processingMs: result.processing_ms,
+    });
+    return result;
   }
   async finish(session: Session) {
     const result = await request<{ feedback: Feedback }>(

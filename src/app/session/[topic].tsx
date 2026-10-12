@@ -32,6 +32,8 @@ import {
   type LessonProgress,
 } from "@/lib/practice";
 import { HoldRecorder, type RecordingPhase } from "@/lib/hold-recorder";
+import { useTutorAudio } from "@/lib/use-tutor-audio";
+import { audioFor } from "@/data/lesson-audio";
 
 const tutor = new RealTutor();
 const turnId = () =>
@@ -62,6 +64,8 @@ export default function SessionScreen() {
   const lesson =
     typeof topic === "string" && isTopic(topic) ? lessons[topic] : null;
   const insets = useSafeAreaInsets();
+  const audio = useTutorAudio();
+  const stopAudio = audio.stop;
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recording = useAudioRecorderState(recorder, 100);
   const [session, setSession] = useState<Session | null>(null);
@@ -91,10 +95,17 @@ export default function SessionScreen() {
   const blocked = busy || voice !== "idle";
   const guidedComplete = lesson?.mode !== "mixed" && lessonProgress?.complete;
 
+  function playTutor(currentSession: Session, id: string, text: string) {
+    const clip = lesson?.mode === "mixed" ? undefined : audioFor(text);
+    if (lesson?.mode === "mixed" || clip !== undefined)
+      void audio.play(currentSession, id, clip);
+  }
+
   useEffect(() => {
     alive.current = true;
     const capture = new HoldRecorder({
       prepare: async () => {
+        stopAudio();
         const permission = await requestRecordingPermissionsAsync();
         if (!permission.granted)
           throw new Error(
@@ -132,7 +143,7 @@ export default function SessionScreen() {
       subscription.remove();
       controller.current = null;
     };
-  }, [recorder]);
+  }, [recorder, stopAudio]);
 
   // Sending a transcript and sending typed text share the same retry and bubble handling.
   async function submitText(text: string, id: string) {
@@ -163,6 +174,7 @@ export default function SessionScreen() {
     ]);
     setDraft("");
     setLastTurn(null);
+    playTutor(session, id, result.tutor_response);
   }
 
   useEffect(() => {
@@ -206,6 +218,7 @@ export default function SessionScreen() {
       setMessages([
         { id: "opening", role: "tutor", text: result.initial_tutor_message },
       ]);
+      playTutor(result, "opening", result.initial_tutor_message);
     } catch (e) {
       if (alive.current)
         setError(e instanceof Error ? e.message : "Could not start practice.");
@@ -225,6 +238,7 @@ export default function SessionScreen() {
     )
       return;
     Keyboard.dismiss();
+    audio.stop();
     locked.current = true;
     setBusy(true);
     setError("");
@@ -244,6 +258,7 @@ export default function SessionScreen() {
 
   async function finish() {
     if (!session || locked.current || voice !== "idle") return;
+    audio.stop();
     locked.current = true;
     setBusy(true);
     setError("");
@@ -265,6 +280,7 @@ export default function SessionScreen() {
   }
 
   function exit() {
+    audio.stop();
     void controller.current?.release(false);
     if (session && !feedback)
       Alert.alert("Leave practice?", "Your conversation will end here.", [
@@ -420,6 +436,27 @@ export default function SessionScreen() {
                   >
                     {m.text}
                   </Text>
+                  {m.role === "tutor" && (() => {
+                    const available = lesson.mode === "mixed" || audioFor(m.text) !== undefined;
+                    if (!available) return m.id === "opening" ? null : <Text style={s.small}>Recording not yet available</Text>;
+                    const id = m.id === "opening" ? "opening" : m.id.replace(/^reply-/, "");
+                    const selected = audio.active === id;
+                    return (
+                      <View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={selected && audio.playing ? "Stop tutor audio" : "Replay tutor audio"}
+                          disabled={blocked || (selected && audio.loading)}
+                          style={[s.audioButton, blocked && s.disabled]}
+                          onPress={() => selected && audio.playing ? audio.stop() : playTutor(session, id, m.text)}
+                        >
+                          {selected && audio.loading ? <ActivityIndicator size="small" color={colors.ink} /> : null}
+                          <Text style={s.audioLabel}>{selected && audio.loading ? "Preparing audio…" : selected && audio.playing ? "■ Stop audio" : "▶ Replay"}</Text>
+                        </Pressable>
+                        {selected && !!audio.error && <Text style={s.errorText}>{audio.error}</Text>}
+                      </View>
+                    );
+                  })()}
                 </View>
               </View>
             ))}
@@ -466,6 +503,7 @@ export default function SessionScreen() {
             ))}
             <Pressable
               onPress={() => {
+                audio.stop();
                 setSession(null);
                 setMessages([]);
                 setFeedback(null);
@@ -625,6 +663,8 @@ export default function SessionScreen() {
 }
 
 const s = StyleSheet.create({
+  audioButton: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, alignSelf: "flex-start", paddingVertical: 8, paddingRight: 12 },
+  audioLabel: { color: colors.ink, fontSize: 13, fontWeight: "600" },
   screen: { flex: 1, backgroundColor: colors.paper },
   flex: { flex: 1 },
   white: { color: "#FFFDF8" },

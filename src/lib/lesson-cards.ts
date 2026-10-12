@@ -4,8 +4,8 @@ export type PhraseOption = { text: string; english: string; example?: boolean };
 
 export function phraseOptions(text: string, english: string): PhraseOption[] {
   return text.split(' / ').map(value => {
-    // Match the supplied recording exactly; the practice tutor can still be Musa.
-    if (/^suna\s*na\s+(?:…|\.\.\.|Musa)$/i.test(value.trim())) {
+    // Match the supplied recording and the practice tutor’s name.
+    if (/^suna\s*na\s+(?:…|\.\.\.|Aku)$/i.test(value.trim())) {
       return { text: 'Suna na Aku', english: 'My name is Aku', example: true };
     }
     return { text: value.trim(), english };
